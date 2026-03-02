@@ -3,6 +3,15 @@ from __future__ import annotations
 from pathlib import Path
 
 import typer
+from rich.progress import (
+    BarColumn,
+    Progress,
+    SpinnerColumn,
+    TaskProgressColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 from zotero_to_md.config import load_config
 from zotero_to_md.errors import ConfigError, SyncError, ZoteroClientError
@@ -56,7 +65,28 @@ def sync(
             dry_run=dry_run,
             verbose=verbose,
         )
-        stats = run_sync(config, log=lambda message: typer.echo(message, err=True))
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            TimeElapsedColumn(),
+            TimeRemainingColumn(),
+            transient=False,
+        ) as progress:
+            task_id = progress.add_task("syncing zotero items", total=1)
+
+            def on_progress(current: int, total: int, label: str | None) -> None:
+                safe_total = max(total, 1)
+                progress.update(task_id, total=safe_total, completed=min(current, safe_total))
+                if label:
+                    progress.update(task_id, description=f"syncing zotero items [{label}]")
+
+            stats = run_sync(
+                config,
+                log=lambda message: typer.echo(message, err=True),
+                progress=on_progress,
+            )
     except (ConfigError, ZoteroClientError, SyncError) as exc:
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc

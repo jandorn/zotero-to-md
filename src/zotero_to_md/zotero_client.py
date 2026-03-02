@@ -74,6 +74,7 @@ class ZoteroClient:
                 collection_path = self._resolve_item_collection_path(
                     item_collections=data.get("collections", []),
                     collection_path_map=collection_path_map,
+                    fallback_collection_key=collection_key,
                 )
                 existing = by_item_key.get(item_key)
                 if existing:
@@ -146,15 +147,20 @@ class ZoteroClient:
         *,
         item_collections: list[str],
         collection_path_map: dict[str, str],
+        fallback_collection_key: str | None = None,
     ) -> str:
         paths = [collection_path_map[key] for key in item_collections if key in collection_path_map]
+        if fallback_collection_key and fallback_collection_key in collection_path_map:
+            fallback_path = collection_path_map[fallback_collection_key]
+            if fallback_path not in paths:
+                paths.append(fallback_path)
         if not paths:
             return ""
-        return min(paths, key=lambda path: (path.count("/"), len(path), path))
+        return max(paths, key=lambda path: (path.count("/"), len(path), path))
 
     @staticmethod
     def _is_preferred_path(candidate: str, existing: str) -> bool:
-        return (candidate.count("/"), len(candidate), candidate) < (
+        return (candidate.count("/"), len(candidate), candidate) > (
             existing.count("/"),
             len(existing),
             existing,
@@ -199,4 +205,3 @@ def _extract_year(raw_date: Any) -> str | None:
         return None
     match = re.search(r"(19|20)\d{2}", str(raw_date))
     return match.group(0) if match else None
-

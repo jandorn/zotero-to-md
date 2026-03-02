@@ -145,3 +145,35 @@ def test_web_failure_still_creates_markdown_and_error_state(monkeypatch, tmp_pat
     state_data = json.loads(config.state_path.read_text(encoding="utf-8"))
     assert state_data["processed_items"]["ITEM_WEB_FAIL"]["status"] == "error"
 
+
+def test_sync_reports_progress_updates(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+
+    items = [
+        ZoteroItem(
+            item_key="ITEM_1",
+            title="Paper 1",
+            authors=["A"],
+            year="2026",
+            url="https://example.com/1",
+            collection_path="",
+            pdf_attachment_key=None,
+        ),
+        ZoteroItem(
+            item_key="ITEM_2",
+            title="Paper 2",
+            authors=["B"],
+            year="2026",
+            url="https://example.com/2",
+            collection_path="",
+            pdf_attachment_key=None,
+        ),
+    ]
+    client = FakeZoteroClient(items)
+    config = _make_config(tmp_path)
+    events: list[tuple[int, int, str | None]] = []
+
+    run_sync(config, client=client, progress=lambda current, total, label: events.append((current, total, label)))
+
+    assert events[0] == (0, 2, "starting")
+    assert events[-1] == (2, 2, "done")

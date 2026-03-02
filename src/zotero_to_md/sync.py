@@ -14,11 +14,19 @@ from zotero_to_md.state_store import StateStore
 from zotero_to_md.zotero_client import ZoteroClient
 
 LogFn = Callable[[str], None]
+ProgressFn = Callable[[int, int, str | None], None]
 
 
-def run_sync(config: AppConfig, *, client: ZoteroClient | None = None, log: LogFn | None = None) -> SyncStats:
+def run_sync(
+    config: AppConfig,
+    *,
+    client: ZoteroClient | None = None,
+    log: LogFn | None = None,
+    progress: ProgressFn | None = None,
+) -> SyncStats:
     stats = SyncStats()
     logger = log or (lambda _message: None)
+    progress_update = progress or (lambda _current, _total, _label: None)
 
     zotero_client = client or ZoteroClient(
         user_id=config.zotero_user_id,
@@ -33,6 +41,8 @@ def run_sync(config: AppConfig, *, client: ZoteroClient | None = None, log: LogF
     )
     items = zotero_client.fetch_items(collection_path_map)
     stats.discovered = len(items)
+    total_items = len(items)
+    progress_update(0, total_items, "starting")
 
     state = StateStore(config.state_path)
     state_data = state.load()
@@ -46,13 +56,15 @@ def run_sync(config: AppConfig, *, client: ZoteroClient | None = None, log: LogF
     if not config.dry_run:
         config.papers_root.mkdir(parents=True, exist_ok=True)
 
-    for item in items:
+    for idx, item in enumerate(items, start=1):
         if state.is_processed(item.item_key):
             stats.skipped_existing += 1
+            progress_update(idx, total_items, "skipped")
             continue
 
         if config.dry_run:
             stats.would_process += 1
+            progress_update(idx, total_items, "dry-run")
             continue
 
         extraction = _extract_item_content(item=item, client=zotero_client)
@@ -87,9 +99,15 @@ def run_sync(config: AppConfig, *, client: ZoteroClient | None = None, log: LogF
         stats.written_files.append(output_path)
         if config.verbose:
             logger(f"processed {item.item_key} -> {output_path}")
+        progress_update(idx, total_items, "processed")
 
     if not config.dry_run:
         state.save(root_collection_key=root_collection_key, last_run_at=_utc_now_iso())
+
+    if total_items == 0:
+        progress_update(1, 1, "done")
+    else:
+        progress_update(total_items, total_items, "done")
 
     return stats
 
@@ -161,4 +179,3 @@ def _error_body(message: str, *, url: str | None) -> str:
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
-
