@@ -1,7 +1,7 @@
 # zotero-to-md
 
 <p align="center">
-  <img src="assets/zotero-to-md.png" alt="zotero-to-md" width="400">
+  <img src="assets/zotero-to-md.png" alt="zotero-to-md" width="600">
 </p>
 
 
