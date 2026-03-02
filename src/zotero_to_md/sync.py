@@ -54,7 +54,7 @@ def run_sync(
         )
 
     if not config.dry_run:
-        config.papers_root.mkdir(parents=True, exist_ok=True)
+        config.output_root.mkdir(parents=True, exist_ok=True)
 
     for idx, item in enumerate(items, start=1):
         if state.is_processed(item.item_key):
@@ -70,7 +70,7 @@ def run_sync(
         extraction = _extract_item_content(item=item, client=zotero_client)
         processed_at = _utc_now_iso()
         output_path = resolve_output_path(
-            config.papers_root,
+            config.output_root,
             collection_path=item.collection_path,
             title=item.title,
             authors=item.authors,
@@ -87,7 +87,7 @@ def run_sync(
         state.mark_processed(
             item.item_key,
             StateEntry(
-                output_path=str(output_path.relative_to(config.target_repo_path)),
+                output_path=str(output_path.relative_to(config.output_root)),
                 processed_at=processed_at,
                 source_kind=extraction.source_kind,
                 status=extraction.status,

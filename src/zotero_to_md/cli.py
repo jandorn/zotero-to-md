@@ -31,19 +31,19 @@ def _root() -> None:
 
 @app.command("sync")
 def sync(
-    target_repo_path: Path = typer.Option(
+    target_destination_path: Path = typer.Option(
         ...,
-        "--target-repo-path",
+        "--target-destination-path",
         file_okay=False,
         dir_okay=True,
-        exists=True,
-        resolve_path=True,
-        help="Absolute or relative path to the target repository.",
+        exists=False,
+        resolve_path=False,
+        help="Absolute path to the destination directory for Markdown output.",
     ),
     root_collection: str = typer.Option(
-        "Masterarbeit",
+        ...,
         "--root-collection",
-        help='Name of the root Zotero collection to sync (default: "Masterarbeit").',
+        help="Name of the root Zotero collection to sync.",
     ),
     recursive: bool = typer.Option(
         True,
@@ -59,7 +59,7 @@ def sync(
 ) -> None:
     try:
         config = load_config(
-            target_repo_path=target_repo_path,
+            target_destination_path=target_destination_path,
             root_collection=root_collection,
             recursive=recursive,
             dry_run=dry_run,

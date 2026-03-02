@@ -12,19 +12,19 @@ ProcessingStatus = Literal["ok", "error"]
 class AppConfig:
     zotero_user_id: str
     zotero_api_key: str
-    target_repo_path: Path
-    root_collection: str = "Masterarbeit"
+    target_destination_path: Path
+    root_collection: str
     recursive: bool = True
     dry_run: bool = False
     verbose: bool = False
 
     @property
-    def papers_root(self) -> Path:
-        return self.target_repo_path / ".cursor" / "papers"
+    def output_root(self) -> Path:
+        return self.target_destination_path
 
     @property
     def state_path(self) -> Path:
-        return self.papers_root / ".zotero_state.json"
+        return self.target_destination_path / ".zotero_state.json"
 
 
 @dataclass(slots=True)
@@ -62,4 +62,3 @@ class SyncStats:
     errors: int = 0
     would_process: int = 0
     written_files: list[Path] = field(default_factory=list)
-
