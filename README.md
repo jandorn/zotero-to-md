@@ -5,13 +5,13 @@
 </p>
 
 
-CLI tool to sync Zotero entries from the `Masterarbeit` collection to Markdown files in a separate target repository.
+CLI tool to sync Zotero entries from a chosen root collection to Markdown files in a configurable destination directory.
 
 ## Features
 
-- Sync Zotero `Masterarbeit` collection recursively (including subfolders)
+- Sync a chosen Zotero root collection recursively (including subfolders)
 - Extract content from attached PDFs and URL-only entries
-- Mirror Zotero folder structure into `.cursor/papers/`
+- Mirror Zotero folder structure into your configured destination directory
 - Save files as `<author> - <title>.md`
 - Stateful incremental sync: after first run, only new Zotero items are processed
 
@@ -38,15 +38,16 @@ ZOTERO_USER_ID=...
 
 ## Usage
 
-Sync into a target repo:
+Sync into an absolute destination path:
 
 ```bash
-uv run zotero-to-md sync --target-repo-path /path/to/target-repo
+uv run zotero-to-md sync \
+  --root-collection "Masterarbeit" \
+  --target-destination-path /absolute/path/to/output
 ```
 
 Optional flags:
 
-- `--root-collection` (default: `Masterarbeit`)
 - `--recursive/--no-recursive` (default: recursive)
 - `--dry-run`
 - `--verbose`
@@ -54,11 +55,11 @@ Optional flags:
 Output is written only to:
 
 ```text
-<target_repo>/.cursor/papers/
+/absolute/path/to/output/
 ```
 
 State file:
 
 ```text
-<target_repo>/.cursor/papers/.zotero_state.json
+/absolute/path/to/output/.zotero_state.json
 ```
