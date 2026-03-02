@@ -1,5 +1,10 @@
 # zotero-to-md
 
+<p align="center">
+  <img src="assets/zotero-to-md.png" alt="zotero-to-md" width="400">
+</p>
+
+
 CLI tool to sync Zotero entries from the `Masterarbeit` collection to Markdown files in a separate target repository.
 
 ## Features
