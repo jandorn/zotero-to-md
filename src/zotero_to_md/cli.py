@@ -1,0 +1,82 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+import typer
+
+from zotero_to_md.config import load_config
+from zotero_to_md.errors import ConfigError, SyncError, ZoteroClientError
+from zotero_to_md.sync import run_sync
+
+app = typer.Typer(
+    no_args_is_help=True,
+    add_completion=False,
+    rich_markup_mode=None,
+)
+
+
+@app.callback()
+def _root() -> None:
+    """zotero-to-md CLI."""
+
+
+@app.command("sync")
+def sync(
+    target_repo_path: Path = typer.Option(
+        ...,
+        "--target-repo-path",
+        file_okay=False,
+        dir_okay=True,
+        exists=True,
+        resolve_path=True,
+        help="Absolute or relative path to the target repository.",
+    ),
+    root_collection: str = typer.Option(
+        "Masterarbeit",
+        "--root-collection",
+        help='Name of the root Zotero collection to sync (default: "Masterarbeit").',
+    ),
+    recursive: bool = typer.Option(
+        True,
+        "--recursive/--no-recursive",
+        help="Include subcollections recursively.",
+    ),
+    dry_run: bool = typer.Option(
+        False,
+        "--dry-run",
+        help="Show what would be processed without writing files or state.",
+    ),
+    verbose: bool = typer.Option(False, "--verbose", help="Enable verbose output."),
+) -> None:
+    try:
+        config = load_config(
+            target_repo_path=target_repo_path,
+            root_collection=root_collection,
+            recursive=recursive,
+            dry_run=dry_run,
+            verbose=verbose,
+        )
+        stats = run_sync(config, log=lambda message: typer.echo(message, err=True))
+    except (ConfigError, ZoteroClientError, SyncError) as exc:
+        typer.echo(f"error: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except Exception as exc:  # pragma: no cover - defensive fallback
+        typer.echo(f"unexpected error: {exc}", err=True)
+        raise typer.Exit(code=2) from exc
+
+    typer.echo("sync complete")
+    typer.echo(f"discovered: {stats.discovered}")
+    typer.echo(f"skipped_existing: {stats.skipped_existing}")
+    if dry_run:
+        typer.echo(f"would_process: {stats.would_process}")
+    else:
+        typer.echo(f"processed: {stats.processed}")
+        typer.echo(f"errors: {stats.errors}")
+
+
+def main() -> None:
+    app()
+
+
+if __name__ == "__main__":
+    main()
