@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "zotero-to-md"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "pymupdf>=1.26.5",
+    "python-dotenv>=1.1.1",
+    "pyyaml>=6.0.3",
+    "pyzotero>=1.6.16",
+    "readability-lxml>=0.8.4.1",
+    "trafilatura>=2.0.0",
+    "typer>=0.16.1",
+]
+
+[project.scripts]
+zotero-to-md = "zotero_to_md.cli:app"
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4.2",
+    "respx>=0.22.0",
+    "ruff>=0.15.4",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/zotero_to_md"]
