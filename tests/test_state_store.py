@@ -6,13 +6,13 @@ from zotero_to_md.state_store import StateStore
 
 
 def test_state_store_roundtrip(tmp_path: Path) -> None:
-    state_path = tmp_path / ".cursor" / "papers" / ".zotero_state.json"
+    state_path = tmp_path / "notes" / ".zotero_state.json"
     store = StateStore(state_path)
     store.load()
     store.mark_processed(
         "ITEM1",
         StateEntry(
-            output_path=".cursor/papers/1. Introduction/Jane - Paper.md",
+            output_path="1. Introduction/Jane - Paper.md",
             processed_at="2026-03-02T10:00:00+00:00",
             source_kind="pdf",
             status="ok",
@@ -28,4 +28,3 @@ def test_state_store_roundtrip(tmp_path: Path) -> None:
     reloaded_store = StateStore(state_path)
     reloaded_store.load()
     assert reloaded_store.is_processed("ITEM1")
-

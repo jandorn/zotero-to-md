@@ -27,12 +27,12 @@ class FakeZoteroClient:
 
 
 def _make_config(tmp_path: Path, dry_run: bool = False) -> AppConfig:
-    target_repo = tmp_path / "target"
-    target_repo.mkdir(parents=True, exist_ok=True)
+    target_destination = tmp_path / "target"
+    target_destination.mkdir(parents=True, exist_ok=True)
     return AppConfig(
         zotero_user_id="12345",
         zotero_api_key="secret",
-        target_repo_path=target_repo,
+        target_destination_path=target_destination,
         root_collection="Masterarbeit",
         recursive=True,
         dry_run=dry_run,
@@ -137,7 +137,7 @@ def test_web_failure_still_creates_markdown_and_error_state(monkeypatch, tmp_pat
 
     assert stats.processed == 1
     assert stats.errors == 1
-    markdown_files = list((config.papers_root / "Demand Response").glob("*.md"))
+    markdown_files = list((config.output_root / "Demand Response").glob("*.md"))
     assert markdown_files
     content = markdown_files[0].read_text(encoding="utf-8")
     assert "Content extraction failed" in content
