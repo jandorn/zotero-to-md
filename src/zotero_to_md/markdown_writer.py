@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
 from typing import Any
@@ -10,12 +11,41 @@ from zotero_to_md.models import ExtractionResult, ZoteroItem
 
 INVALID_PATH_CHARS_PATTERN = re.compile(r'[\\/:*?"<>|]+')
 WHITESPACE_PATTERN = re.compile(r"\s+")
+MAX_PATH_COMPONENT_LENGTH = 240
+WINDOWS_MAX_PATH_LENGTH = 240
+WINDOWS_RESERVED_NAMES = {
+    "CON",
+    "PRN",
+    "AUX",
+    "NUL",
+    "COM1",
+    "COM2",
+    "COM3",
+    "COM4",
+    "COM5",
+    "COM6",
+    "COM7",
+    "COM8",
+    "COM9",
+    "LPT1",
+    "LPT2",
+    "LPT3",
+    "LPT4",
+    "LPT5",
+    "LPT6",
+    "LPT7",
+    "LPT8",
+    "LPT9",
+}
 
 
 def sanitize_path_component(value: str) -> str:
     candidate = INVALID_PATH_CHARS_PATTERN.sub("-", value.strip())
     candidate = WHITESPACE_PATTERN.sub(" ", candidate).strip()
-    candidate = candidate.strip(".")
+    candidate = candidate.strip(" .")
+    candidate = _truncate_component(candidate, MAX_PATH_COMPONENT_LENGTH)
+    if candidate.upper() in WINDOWS_RESERVED_NAMES:
+        candidate = f"{candidate}-file"
     return candidate or "untitled"
 
 
@@ -36,13 +66,47 @@ def resolve_output_path(base_dir: Path, *, collection_path: str, title: str, aut
     author = select_primary_author(authors)
     safe_title = sanitize_path_component(title) or "untitled"
     base_name = f"{author} - {safe_title}"
-    output = directory / f"{base_name}.md"
+    output = _build_output_path(directory, base_name)
 
     suffix = 2
     while output.exists():
-        output = directory / f"{base_name}-{suffix}.md"
+        output = _build_output_path(directory, base_name, suffix=suffix)
         suffix += 1
     return output
+
+
+def _build_output_path(directory: Path, base_name: str, *, suffix: int | None = None) -> Path:
+    suffix_text = "" if suffix is None else f"-{suffix}"
+    file_stem = _fit_file_stem(directory, base_name, suffix_text=suffix_text, extension=".md")
+    output = directory / f"{file_stem}{suffix_text}.md"
+    if _running_on_windows() and len(str(output)) > WINDOWS_MAX_PATH_LENGTH:
+        raise ValueError(
+            "Output path is too long for Windows. Choose a shorter target path or collection path."
+        )
+    return output
+
+
+def _fit_file_stem(directory: Path, base_name: str, *, suffix_text: str, extension: str) -> str:
+    max_stem_length = MAX_PATH_COMPONENT_LENGTH - len(suffix_text) - len(extension)
+    if _running_on_windows():
+        available = WINDOWS_MAX_PATH_LENGTH - len(str(directory)) - 1 - len(suffix_text) - len(extension)
+        max_stem_length = min(max_stem_length, available)
+    return _truncate_component(base_name, max(1, max_stem_length))
+
+
+def _truncate_component(value: str, max_length: int) -> str:
+    if len(value) <= max_length:
+        return value
+    if max_length <= 3:
+        return value[:max_length]
+    truncated = value[: max_length - 3].rstrip(" .-")
+    if not truncated:
+        truncated = value[: max_length - 3]
+    return f"{truncated}..."
+
+
+def _running_on_windows() -> bool:
+    return os.name == "nt"
 
 
 def render_markdown(
@@ -67,4 +131,3 @@ def render_markdown(
     frontmatter_yaml = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=False).strip()
     body = extraction.text.strip()
     return f"---\n{frontmatter_yaml}\n---\n\n{body}\n"
-

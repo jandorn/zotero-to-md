@@ -39,6 +39,31 @@ def test_sanitize_path_component_replaces_invalid_chars() -> None:
     assert sanitize_path_component('a/b:c*?"<>| d') == "a-b-c- d"
 
 
+def test_sanitize_path_component_avoids_windows_reserved_names() -> None:
+    assert sanitize_path_component("con") == "con-file"
+
+
+def test_resolve_output_path_truncates_long_windows_paths(monkeypatch, tmp_path: Path) -> None:
+    base_dir = tmp_path / "papers"
+    base_dir.mkdir(parents=True)
+    monkeypatch.setattr("zotero_to_md.markdown_writer._running_on_windows", lambda: True)
+    monkeypatch.setattr(
+        "zotero_to_md.markdown_writer.WINDOWS_MAX_PATH_LENGTH",
+        len(str(base_dir)) + 48,
+    )
+
+    result = resolve_output_path(
+        base_dir,
+        collection_path="",
+        title="Dynamic and explainable machine learning prediction of mortality in patients in the intensive care unit",
+        authors=["Hans-Christian Thorsen-Meyer"],
+    )
+
+    assert len(str(result)) <= len(str(base_dir)) + 48
+    assert result.suffix == ".md"
+    assert result.name.endswith(".md")
+
+
 def test_render_markdown_contains_frontmatter_and_text() -> None:
     item = ZoteroItem(
         item_key="ABCD1234",
@@ -63,4 +88,3 @@ def test_render_markdown_contains_frontmatter_and_text() -> None:
     assert "zotero_item_key: ABCD1234" in markdown
     assert "source_kind: pdf" in markdown
     assert markdown.endswith("Body text\n")
-

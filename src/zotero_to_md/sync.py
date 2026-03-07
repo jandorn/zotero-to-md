@@ -69,12 +69,6 @@ def run_sync(
 
         extraction = _extract_item_content(item=item, client=zotero_client)
         processed_at = _utc_now_iso()
-        output_path = resolve_output_path(
-            config.output_root,
-            collection_path=item.collection_path,
-            title=item.title,
-            authors=item.authors,
-        )
         markdown = render_markdown(
             item=item,
             extraction=extraction,
@@ -82,7 +76,20 @@ def run_sync(
             source_url=item.url,
             collection_path=item.collection_path,
         )
-        output_path.write_text(markdown, encoding="utf-8")
+        output_path: Path | None = None
+        try:
+            output_path = resolve_output_path(
+                config.output_root,
+                collection_path=item.collection_path,
+                title=item.title,
+                authors=item.authors,
+            )
+            output_path.write_text(markdown, encoding="utf-8")
+        except OSError as exc:
+            failed_path = str(output_path) if output_path is not None else "the resolved output path"
+            raise SyncError(f"Failed to write output file {failed_path}: {exc}") from exc
+        except ValueError as exc:
+            raise SyncError(str(exc)) from exc
 
         state.mark_processed(
             item.item_key,

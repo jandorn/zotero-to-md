@@ -177,3 +177,33 @@ def test_sync_reports_progress_updates(monkeypatch, tmp_path: Path) -> None:
 
     assert events[0] == (0, 2, "starting")
     assert events[-1] == (2, 2, "done")
+
+
+def test_sync_truncates_long_windows_output_paths(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+    monkeypatch.setattr("zotero_to_md.markdown_writer._running_on_windows", lambda: True)
+
+    config = _make_config(tmp_path)
+    monkeypatch.setattr(
+        "zotero_to_md.markdown_writer.WINDOWS_MAX_PATH_LENGTH",
+        len(str(config.output_root)) + 64,
+    )
+
+    items = [
+        ZoteroItem(
+            item_key="ITEM_LONG",
+            title="Dynamic and explainable machine learning prediction of mortality in patients in the intensive care unit a retrospective study of high-frequency data in electronic patient records",
+            authors=["Hans-Christian Thorsen-Meyer"],
+            year="2026",
+            url="https://example.com/long",
+            collection_path="",
+            pdf_attachment_key=None,
+        )
+    ]
+    client = FakeZoteroClient(items)
+
+    stats = run_sync(config, client=client)
+
+    assert stats.processed == 1
+    assert len(stats.written_files) == 1
+    assert len(str(stats.written_files[0])) <= len(str(config.output_root)) + 64
