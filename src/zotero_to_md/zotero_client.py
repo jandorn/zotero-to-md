@@ -24,6 +24,7 @@ class ZoteroClient:
         client: Any | None = None,
     ) -> None:
         self._zot = client or zotero.Zotero(user_id, library_type, api_key)
+        self._collections_cache: list[dict[str, Any]] | None = None
 
     def _everything(self, endpoint_result: Any) -> list[dict[str, Any]]:
         everything = getattr(self._zot, "everything", None)
@@ -32,8 +33,11 @@ class ZoteroClient:
         return list(endpoint_result)
 
     def get_all_collections(self) -> list[dict[str, Any]]:
+        if self._collections_cache is not None:
+            return list(self._collections_cache)
         try:
-            return self._everything(self._zot.collections())
+            self._collections_cache = self._everything(self._zot.collections())
+            return list(self._collections_cache)
         except Exception as exc:  # pragma: no cover - external service behavior
             raise ZoteroClientError(f"Failed to fetch Zotero collections: {exc}") from exc
 
@@ -62,6 +66,7 @@ class ZoteroClient:
                 raise ZoteroClientError(
                     f"Failed to fetch collection items for {collection_key}: {exc}"
                 ) from exc
+            pdf_attachments = self._index_pdf_attachments(raw_items)
             for raw_item in raw_items:
                 data = raw_item.get("data", {})
                 item_type = data.get("itemType", "")
@@ -80,6 +85,8 @@ class ZoteroClient:
                 if existing:
                     if self._is_preferred_path(collection_path, existing.collection_path):
                         existing.collection_path = collection_path
+                    if existing.pdf_attachment_key is None and item_key in pdf_attachments:
+                        existing.pdf_attachment_key = pdf_attachments[item_key]
                     continue
 
                 by_item_key[item_key] = ZoteroItem(
@@ -89,28 +96,18 @@ class ZoteroClient:
                     year=_extract_year(data.get("date")),
                     url=((data.get("url") or "").strip() or None),
                     collection_path=collection_path,
-                    pdf_attachment_key=self.find_pdf_attachment_key(item_key),
+                    pdf_attachment_key=pdf_attachments.get(item_key),
+                    item_type=item_type or None,
+                    tags=_extract_tags(data.get("tags", [])),
+                    abstract=((data.get("abstractNote") or "").strip() or None),
+                    doi=((data.get("DOI") or "").strip() or None),
+                    zotero_library_key=_extract_library_key(raw_item),
                 )
 
         return sorted(
             by_item_key.values(),
             key=lambda item: (item.collection_path, item.title.lower(), item.item_key),
         )
-
-    def find_pdf_attachment_key(self, parent_item_key: str) -> str | None:
-        try:
-            children = self._everything(self._zot.children(parent_item_key))
-        except Exception:  # pragma: no cover - external service behavior
-            return None
-        for child in children:
-            data = child.get("data", {})
-            if data.get("itemType") != "attachment":
-                continue
-            content_type = (data.get("contentType") or "").lower()
-            if "pdf" not in content_type:
-                continue
-            return child.get("key") or data.get("key")
-        return None
 
     def download_pdf_attachment(self, attachment_key: str, destination_path: Path) -> Path:
         destination_path.parent.mkdir(parents=True, exist_ok=True)
@@ -166,6 +163,21 @@ class ZoteroClient:
             existing,
         )
 
+    @staticmethod
+    def _index_pdf_attachments(raw_items: list[dict[str, Any]]) -> dict[str, str]:
+        attachments: dict[str, str] = {}
+        for raw_item in raw_items:
+            data = raw_item.get("data", {})
+            if data.get("itemType") != "attachment":
+                continue
+            parent_item = data.get("parentItem")
+            attachment_key = raw_item.get("key") or data.get("key")
+            content_type = (data.get("contentType") or "").lower()
+            if not parent_item or not attachment_key or "pdf" not in content_type:
+                continue
+            attachments.setdefault(parent_item, attachment_key)
+        return attachments
+
 
 def _extract_authors(creators: list[dict[str, Any]]) -> list[str]:
     authors: list[str] = []
@@ -205,3 +217,24 @@ def _extract_year(raw_date: Any) -> str | None:
         return None
     match = re.search(r"(19|20)\d{2}", str(raw_date))
     return match.group(0) if match else None
+
+
+def _extract_tags(raw_tags: list[dict[str, Any]]) -> list[str]:
+    tags: list[str] = []
+    for raw_tag in raw_tags:
+        if not isinstance(raw_tag, dict):
+            continue
+        tag = str(raw_tag.get("tag", "")).strip()
+        if tag:
+            tags.append(tag)
+    return tags
+
+
+def _extract_library_key(raw_item: dict[str, Any]) -> str | None:
+    library = raw_item.get("library", {})
+    if not isinstance(library, dict):
+        return None
+    key = library.get("key")
+    if key is None:
+        return None
+    return str(key).strip() or None

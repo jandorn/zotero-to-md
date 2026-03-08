@@ -9,11 +9,12 @@ CLI tool to sync Zotero entries from a chosen root collection to Markdown files 
 
 ## Features
 
-- Sync a chosen Zotero root collection recursively (including subfolders)
+- Hybrid sync for a chosen Zotero root collection recursively (including subfolders)
 - Extract content from attached PDFs and URL-only entries
 - Mirror Zotero folder structure into your configured destination directory
 - Save files as `<author> - <title>.md`
-- Stateful incremental sync: after first run, only new Zotero items are processed
+- Stateful sync with retries for failed items and reprocessing for changed Zotero metadata
+- Status inspection, canonical resync, and stale file pruning
 
 ## Setup
 
@@ -52,6 +53,45 @@ Optional flags:
 - `--dry-run`
 - `--verbose`
 
+Inspect the current sync state:
+
+```bash
+uv run zotero-to-md status \
+  --root-collection "Masterarbeit" \
+  --target-destination-path /absolute/path/to/output
+```
+
+Force canonical rewrite and rename for one item or all items:
+
+```bash
+uv run zotero-to-md resync \
+  --root-collection "Masterarbeit" \
+  --target-destination-path /absolute/path/to/output \
+  --item-key ABCD1234
+```
+
+```bash
+uv run zotero-to-md resync \
+  --root-collection "Masterarbeit" \
+  --target-destination-path /absolute/path/to/output \
+  --all
+```
+
+Show stale files or delete them:
+
+```bash
+uv run zotero-to-md prune \
+  --root-collection "Masterarbeit" \
+  --target-destination-path /absolute/path/to/output
+```
+
+```bash
+uv run zotero-to-md prune \
+  --root-collection "Masterarbeit" \
+  --target-destination-path /absolute/path/to/output \
+  --apply
+```
+
 Output is written only to:
 
 ```text
@@ -63,3 +103,5 @@ State file:
 ```text
 /absolute/path/to/output/.zotero_state.json
 ```
+
+`sync` keeps existing file paths stable by default. Use `resync` when you want files renamed or moved to the current canonical Zotero-derived path.
