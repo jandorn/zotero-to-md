@@ -36,6 +36,11 @@ class ZoteroItem:
     url: str | None
     collection_path: str
     pdf_attachment_key: str | None
+    item_type: str | None = None
+    tags: list[str] = field(default_factory=list)
+    abstract: str | None = None
+    doi: str | None = None
+    zotero_library_key: str | None = None
 
 
 @dataclass(slots=True)
@@ -48,10 +53,12 @@ class ExtractionResult:
 
 @dataclass(slots=True)
 class StateEntry:
-    output_path: str
+    output_path: str | None
     processed_at: str
     source_kind: SourceKind
     status: ProcessingStatus
+    fingerprint: str | None = None
+    last_seen_at: str | None = None
 
 
 @dataclass(slots=True)
@@ -62,3 +69,22 @@ class SyncStats:
     errors: int = 0
     would_process: int = 0
     written_files: list[Path] = field(default_factory=list)
+
+
+@dataclass(slots=True)
+class StatusReport:
+    root_collection: str
+    state_schema_version: int
+    last_run_at: str | None
+    new: int = 0
+    changed: int = 0
+    errored: int = 0
+    stale: int = 0
+    ok: int = 0
+
+
+@dataclass(slots=True)
+class PruneStats:
+    stale_item_keys: list[str] = field(default_factory=list)
+    deleted_files: int = 0
+    removed_state_entries: int = 0
