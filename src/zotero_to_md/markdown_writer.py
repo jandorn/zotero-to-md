@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 from pathlib import Path
@@ -55,7 +56,14 @@ def select_primary_author(authors: list[str]) -> str:
     return sanitize_path_component(authors[0]) or "unknown-author"
 
 
-def resolve_output_path(base_dir: Path, *, collection_path: str, title: str, authors: list[str]) -> Path:
+def resolve_output_path(
+    base_dir: Path,
+    *,
+    collection_path: str,
+    title: str,
+    authors: list[str],
+    allow_existing_path: Path | None = None,
+) -> Path:
     directory = base_dir
     for component in Path(collection_path).parts:
         if component in {"", "."}:
@@ -69,7 +77,7 @@ def resolve_output_path(base_dir: Path, *, collection_path: str, title: str, aut
     output = _build_output_path(directory, base_name)
 
     suffix = 2
-    while output.exists():
+    while output.exists() and output != allow_existing_path:
         output = _build_output_path(directory, base_name, suffix=suffix)
         suffix += 1
     return output
@@ -122,12 +130,32 @@ def render_markdown(
         "title": item.title,
         "authors": item.authors,
         "year": item.year,
+        "item_type": item.item_type,
+        "tags": item.tags,
+        "abstract": item.abstract,
+        "doi": item.doi,
+        "zotero_library_key": item.zotero_library_key,
         "source_kind": extraction.source_kind,
         "source_url": source_url,
         "collection_path": collection_path,
         "processed_at": processed_at,
         "status": extraction.status,
+        "fingerprint": item_fingerprint(item),
     }
     frontmatter_yaml = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=False).strip()
     body = extraction.text.strip()
     return f"---\n{frontmatter_yaml}\n---\n\n{body}\n"
+
+
+def item_fingerprint(item: ZoteroItem) -> str:
+    payload = {
+        "item_key": item.item_key,
+        "title": item.title,
+        "authors": item.authors,
+        "year": item.year,
+        "url": item.url,
+        "collection_path": item.collection_path,
+        "pdf_attachment_key": item.pdf_attachment_key,
+    }
+    normalized = yaml.safe_dump(payload, sort_keys=True, allow_unicode=False)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()

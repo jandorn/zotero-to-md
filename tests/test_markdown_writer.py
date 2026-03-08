@@ -87,4 +87,6 @@ def test_render_markdown_contains_frontmatter_and_text() -> None:
     assert markdown.startswith("---\n")
     assert "zotero_item_key: ABCD1234" in markdown
     assert "source_kind: pdf" in markdown
+    assert "fingerprint:" in markdown
+    assert "item_type: null" in markdown
     assert markdown.endswith("Body text\n")
