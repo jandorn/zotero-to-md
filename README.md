@@ -43,7 +43,7 @@ Run the normal sync command:
 
 ```bash
 uv run zotero-to-md sync \
-  --root-collection "Masterarbeit" \
+  --root-collection "YourZoteroCollectionName" \
   --target-destination-path /absolute/path/to/output
 ```
 
@@ -73,7 +73,7 @@ Example:
 
 ```bash
 uv run zotero-to-md sync \
-  --root-collection "Masterarbeit" \
+  --root-collection "YourZoteroCollectionName" \
   --target-destination-path /absolute/path/to/output \
   --dry-run
 ```
@@ -88,7 +88,7 @@ Inspect the current sync state:
 
 ```bash
 uv run zotero-to-md status \
-  --root-collection "Masterarbeit" \
+  --root-collection "YourZoteroCollectionName" \
   --target-destination-path /absolute/path/to/output
 ```
 
@@ -108,7 +108,7 @@ Resync one item:
 
 ```bash
 uv run zotero-to-md resync \
-  --root-collection "Masterarbeit" \
+  --root-collection "YourZoteroCollectionName" \
   --target-destination-path /absolute/path/to/output \
   --item-key ABCD1234
 ```
@@ -117,7 +117,7 @@ Resync everything below the selected root collection:
 
 ```bash
 uv run zotero-to-md resync \
-  --root-collection "Masterarbeit" \
+  --root-collection "YourZoteroCollectionName" \
   --target-destination-path /absolute/path/to/output \
   --all
 ```
@@ -132,7 +132,7 @@ Preview stale files:
 
 ```bash
 uv run zotero-to-md prune \
-  --root-collection "Masterarbeit" \
+  --root-collection "YourZoteroCollectionName" \
   --target-destination-path /absolute/path/to/output
 ```
 
@@ -140,7 +140,7 @@ Delete stale files and remove their state entries:
 
 ```bash
 uv run zotero-to-md prune \
-  --root-collection "Masterarbeit" \
+  --root-collection "YourZoteroCollectionName" \
   --target-destination-path /absolute/path/to/output \
   --apply
 ```
