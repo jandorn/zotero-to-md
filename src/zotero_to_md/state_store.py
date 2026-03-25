@@ -34,7 +34,9 @@ class StateStore:
         except json.JSONDecodeError as exc:
             raise SyncError(f"Invalid state file {self.state_path}: {exc}") from exc
         if not isinstance(raw, dict):
-            raise SyncError(f"Invalid state file {self.state_path}: expected a JSON object.")
+            raise SyncError(
+                f"Invalid state file {self.state_path}: expected a JSON object."
+            )
 
         merged = _default_state()
         merged.update(raw)
@@ -100,7 +102,9 @@ class StateStore:
         temp_path.replace(self.state_path)
 
     @staticmethod
-    def _migrate_processed_items(processed_items: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    def _migrate_processed_items(
+        processed_items: dict[str, Any],
+    ) -> dict[str, dict[str, Any]]:
         migrated: dict[str, dict[str, Any]] = {}
         for item_key, raw_entry in processed_items.items():
             if not isinstance(item_key, str) or not isinstance(raw_entry, dict):
@@ -111,6 +115,7 @@ class StateStore:
                 "source_kind": raw_entry.get("source_kind", "none"),
                 "status": raw_entry.get("status", "error"),
                 "fingerprint": raw_entry.get("fingerprint"),
-                "last_seen_at": raw_entry.get("last_seen_at") or raw_entry.get("processed_at"),
+                "last_seen_at": raw_entry.get("last_seen_at")
+                or raw_entry.get("processed_at"),
             }
         return migrated

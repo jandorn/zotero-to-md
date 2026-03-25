@@ -8,4 +8,3 @@ class ZoteroClientError(Exception):
 
 class SyncError(Exception):
     """Raised for sync pipeline failures."""
-

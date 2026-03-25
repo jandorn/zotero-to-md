@@ -1,2 +1,1 @@
 """zotero-to-md package."""
-

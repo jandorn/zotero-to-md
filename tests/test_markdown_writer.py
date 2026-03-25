@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from zotero_to_md.markdown_writer import render_markdown, resolve_output_path, sanitize_path_component
+from zotero_to_md.markdown_writer import (
+    render_markdown,
+    resolve_output_path,
+    sanitize_path_component,
+)
 from zotero_to_md.models import ExtractionResult, ZoteroItem
 
 
@@ -43,10 +47,14 @@ def test_sanitize_path_component_avoids_windows_reserved_names() -> None:
     assert sanitize_path_component("con") == "con-file"
 
 
-def test_resolve_output_path_truncates_long_windows_paths(monkeypatch, tmp_path: Path) -> None:
+def test_resolve_output_path_truncates_long_windows_paths(
+    monkeypatch, tmp_path: Path
+) -> None:
     base_dir = tmp_path / "papers"
     base_dir.mkdir(parents=True)
-    monkeypatch.setattr("zotero_to_md.markdown_writer._running_on_windows", lambda: True)
+    monkeypatch.setattr(
+        "zotero_to_md.markdown_writer._running_on_windows", lambda: True
+    )
     monkeypatch.setattr(
         "zotero_to_md.markdown_writer.WINDOWS_MAX_PATH_LENGTH",
         len(str(base_dir)) + 48,

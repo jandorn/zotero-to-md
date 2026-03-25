@@ -34,10 +34,12 @@ def build_collection_path_map(
             key=lambda key: collection_by_key[key].get("data", {}).get("name", ""),
         )
         for child_key in child_keys:
-            name = collection_by_key[child_key].get("data", {}).get("name") or "unnamed-collection"
+            name = (
+                collection_by_key[child_key].get("data", {}).get("name")
+                or "unnamed-collection"
+            )
             parent_path = path_map[parent_key]
             path_map[child_key] = f"{parent_path}/{name}" if parent_path else name
             queue.append(child_key)
 
     return path_map
-

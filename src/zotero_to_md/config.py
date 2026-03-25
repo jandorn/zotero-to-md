@@ -32,7 +32,9 @@ def load_config(
         raise ConfigError("Target destination path must be absolute.")
     resolved_destination = expanded_destination.resolve()
     if resolved_destination.exists() and not resolved_destination.is_dir():
-        raise ConfigError(f"Target destination path is not a directory: {resolved_destination}")
+        raise ConfigError(
+            f"Target destination path is not a directory: {resolved_destination}"
+        )
 
     root_name = root_collection.strip()
     if not root_name:

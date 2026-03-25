@@ -11,7 +11,9 @@ def _set_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ZOTERO_USER_ID", "12345")
 
 
-def test_load_config_requires_absolute_target_destination(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_load_config_requires_absolute_target_destination(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     _set_env(monkeypatch)
 
     with pytest.raises(ConfigError, match="must be absolute"):
@@ -24,7 +26,9 @@ def test_load_config_requires_absolute_target_destination(monkeypatch: pytest.Mo
         )
 
 
-def test_load_config_rejects_empty_root_collection(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_load_config_rejects_empty_root_collection(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     _set_env(monkeypatch)
 
     with pytest.raises(ConfigError, match="must not be empty"):

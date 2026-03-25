@@ -78,9 +78,13 @@ def sync(
 
             def on_progress(current: int, total: int, label: str | None) -> None:
                 safe_total = max(total, 1)
-                progress.update(task_id, total=safe_total, completed=min(current, safe_total))
+                progress.update(
+                    task_id, total=safe_total, completed=min(current, safe_total)
+                )
                 if label:
-                    progress.update(task_id, description=f"syncing zotero items [{label}]")
+                    progress.update(
+                        task_id, description=f"syncing zotero items [{label}]"
+                    )
 
             stats = run_sync(
                 config,

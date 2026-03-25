@@ -39,7 +39,9 @@ class ZoteroClient:
             self._collections_cache = self._everything(self._zot.collections())
             return list(self._collections_cache)
         except Exception as exc:  # pragma: no cover - external service behavior
-            raise ZoteroClientError(f"Failed to fetch Zotero collections: {exc}") from exc
+            raise ZoteroClientError(
+                f"Failed to fetch Zotero collections: {exc}"
+            ) from exc
 
     def find_collection_by_name(self, name: str) -> dict[str, Any]:
         collections = self.get_all_collections()
@@ -47,13 +49,19 @@ class ZoteroClient:
         if not matches:
             raise ZoteroClientError(f'Collection "{name}" not found.')
         if len(matches) > 1:
-            raise ZoteroClientError(f'Collection "{name}" is ambiguous ({len(matches)} matches).')
+            raise ZoteroClientError(
+                f'Collection "{name}" is ambiguous ({len(matches)} matches).'
+            )
         return matches[0]
 
-    def build_collection_path_map(self, *, root_key: str, recursive: bool) -> dict[str, str]:
+    def build_collection_path_map(
+        self, *, root_key: str, recursive: bool
+    ) -> dict[str, str]:
         collections = self.get_all_collections()
         try:
-            return build_collection_path_map(collections, root_key=root_key, recursive=recursive)
+            return build_collection_path_map(
+                collections, root_key=root_key, recursive=recursive
+            )
         except ValueError as exc:
             raise ZoteroClientError(str(exc)) from exc
 
@@ -83,9 +91,14 @@ class ZoteroClient:
                 )
                 existing = by_item_key.get(item_key)
                 if existing:
-                    if self._is_preferred_path(collection_path, existing.collection_path):
+                    if self._is_preferred_path(
+                        collection_path, existing.collection_path
+                    ):
                         existing.collection_path = collection_path
-                    if existing.pdf_attachment_key is None and item_key in pdf_attachments:
+                    if (
+                        existing.pdf_attachment_key is None
+                        and item_key in pdf_attachments
+                    ):
                         existing.pdf_attachment_key = pdf_attachments[item_key]
                     continue
 
@@ -109,14 +122,22 @@ class ZoteroClient:
             key=lambda item: (item.collection_path, item.title.lower(), item.item_key),
         )
 
-    def download_pdf_attachment(self, attachment_key: str, destination_path: Path) -> Path:
+    def download_pdf_attachment(
+        self, attachment_key: str, destination_path: Path
+    ) -> Path:
         destination_path.parent.mkdir(parents=True, exist_ok=True)
         dump = getattr(self._zot, "dump", None)
         if callable(dump):
             try:
-                dump(attachment_key, filename=destination_path.name, path=str(destination_path.parent))
+                dump(
+                    attachment_key,
+                    filename=destination_path.name,
+                    path=str(destination_path.parent),
+                )
             except TypeError:
-                dump(attachment_key, destination_path.name, str(destination_path.parent))
+                dump(
+                    attachment_key, destination_path.name, str(destination_path.parent)
+                )
             except Exception:
                 pass
             if destination_path.exists():
@@ -137,7 +158,9 @@ class ZoteroClient:
                     shutil.copyfile(source_path, destination_path)
                     return destination_path
 
-        raise ZoteroClientError(f"Could not download PDF attachment for key {attachment_key}.")
+        raise ZoteroClientError(
+            f"Could not download PDF attachment for key {attachment_key}."
+        )
 
     @staticmethod
     def _resolve_item_collection_path(
@@ -146,7 +169,11 @@ class ZoteroClient:
         collection_path_map: dict[str, str],
         fallback_collection_key: str | None = None,
     ) -> str:
-        paths = [collection_path_map[key] for key in item_collections if key in collection_path_map]
+        paths = [
+            collection_path_map[key]
+            for key in item_collections
+            if key in collection_path_map
+        ]
         if fallback_collection_key and fallback_collection_key in collection_path_map:
             fallback_path = collection_path_map[fallback_collection_key]
             if fallback_path not in paths:

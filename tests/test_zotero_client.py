@@ -9,7 +9,10 @@ class FakePyzoteroClient:
         self.collections_calls += 1
         return [
             {"key": "ROOT", "data": {"name": "Masterarbeit", "parentCollection": None}},
-            {"key": "DEMAND", "data": {"name": "Demand Response", "parentCollection": "ROOT"}},
+            {
+                "key": "DEMAND",
+                "data": {"name": "Demand Response", "parentCollection": "ROOT"},
+            },
         ]
 
     def collection_items(self, _collection_key: str):
@@ -29,7 +32,13 @@ class FakePyzoteroClient:
                     "key": "ITEM1",
                     "itemType": "journalArticle",
                     "title": "Paper",
-                    "creators": [{"creatorType": "author", "firstName": "Jane", "lastName": "Doe"}],
+                    "creators": [
+                        {
+                            "creatorType": "author",
+                            "firstName": "Jane",
+                            "lastName": "Doe",
+                        }
+                    ],
                     "collections": ["DEMAND"],
                     "tags": [{"tag": "tag-a"}],
                     "DOI": "10.1000/example",

@@ -9,7 +9,9 @@ from zotero_to_md.sync import get_status_report, run_prune, run_resync, run_sync
 
 
 class FakeZoteroClient:
-    def __init__(self, items: list[ZoteroItem], collection_map: dict[str, str] | None = None) -> None:
+    def __init__(
+        self, items: list[ZoteroItem], collection_map: dict[str, str] | None = None
+    ) -> None:
         self.items = items
         self.collection_map = collection_map or {"ROOT": "", "INTRO": "1. Introduction"}
 
@@ -17,19 +19,25 @@ class FakeZoteroClient:
         assert name == "Masterarbeit"
         return {"key": "ROOT"}
 
-    def build_collection_path_map(self, *, root_key: str, recursive: bool) -> dict[str, str]:
+    def build_collection_path_map(
+        self, *, root_key: str, recursive: bool
+    ) -> dict[str, str]:
         assert root_key == "ROOT"
         return self.collection_map if recursive else {"ROOT": ""}
 
     def fetch_items(self, collection_path_map: dict[str, str]) -> list[ZoteroItem]:
         return list(self.items)
 
-    def download_pdf_attachment(self, attachment_key: str, destination_path: Path) -> Path:
+    def download_pdf_attachment(
+        self, attachment_key: str, destination_path: Path
+    ) -> Path:
         destination_path.write_bytes(b"%PDF-1.7 fake content")
         return destination_path
 
 
-def _make_config(tmp_path: Path, dry_run: bool = False, verbose: bool = False) -> AppConfig:
+def _make_config(
+    tmp_path: Path, dry_run: bool = False, verbose: bool = False
+) -> AppConfig:
     target_destination = tmp_path / "target"
     target_destination.mkdir(parents=True, exist_ok=True)
     return AppConfig(
@@ -45,7 +53,9 @@ def _make_config(tmp_path: Path, dry_run: bool = False, verbose: bool = False) -
 
 def test_sync_is_incremental_for_unchanged_items(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr("zotero_to_md.sync.extract_pdf_text", lambda _path: "pdf text")
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     items = [
         ZoteroItem(
@@ -78,9 +88,13 @@ def test_sync_is_incremental_for_unchanged_items(monkeypatch, tmp_path: Path) ->
     assert second_stats.skipped_existing == 2
 
 
-def test_sync_processes_only_new_items_after_first_run(monkeypatch, tmp_path: Path) -> None:
+def test_sync_processes_only_new_items_after_first_run(
+    monkeypatch, tmp_path: Path
+) -> None:
     monkeypatch.setattr("zotero_to_md.sync.extract_pdf_text", lambda _path: "pdf text")
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     client = FakeZoteroClient(
         [
@@ -119,7 +133,9 @@ def test_sync_processes_only_new_items_after_first_run(monkeypatch, tmp_path: Pa
 
 def test_sync_retries_error_items(monkeypatch, tmp_path: Path) -> None:
     responses = iter([(None, "paywall"), ("web text", None)])
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: next(responses))
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: next(responses)
+    )
 
     item = ZoteroItem(
         item_key="ITEM_WEB_FAIL",
@@ -140,12 +156,18 @@ def test_sync_retries_error_items(monkeypatch, tmp_path: Path) -> None:
     assert first_stats.errors == 1
     assert second_stats.processed == 1
     assert second_stats.errors == 0
-    content = next((config.output_root / "Demand Response").glob("*.md")).read_text(encoding="utf-8")
+    content = next((config.output_root / "Demand Response").glob("*.md")).read_text(
+        encoding="utf-8"
+    )
     assert content.endswith("web text\n")
 
 
-def test_sync_persists_checkpoint_when_later_item_fails(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+def test_sync_persists_checkpoint_when_later_item_fails(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     def exploding_render(*args, **kwargs):  # noqa: ANN002, ANN003
         item = kwargs["item"]
@@ -192,8 +214,12 @@ def test_sync_persists_checkpoint_when_later_item_fails(monkeypatch, tmp_path: P
     assert any("error processing ITEM_2" in message for message in messages)
 
 
-def test_sync_rewrites_changed_items_in_existing_path(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+def test_sync_rewrites_changed_items_in_existing_path(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     item = ZoteroItem(
         item_key="ITEM_1",
@@ -230,7 +256,9 @@ def test_sync_rewrites_changed_items_in_existing_path(monkeypatch, tmp_path: Pat
 
 
 def test_resync_moves_item_to_canonical_path(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     client = FakeZoteroClient(
         [
@@ -268,11 +296,16 @@ def test_resync_moves_item_to_canonical_path(monkeypatch, tmp_path: Path) -> Non
     assert not old_path.exists()
     assert new_path.exists()
     state_data = json.loads(config.state_path.read_text(encoding="utf-8"))
-    assert state_data["processed_items"]["ITEM_1"]["output_path"] == "New Folder/Jane Doe - New Title.md"
+    assert (
+        state_data["processed_items"]["ITEM_1"]["output_path"]
+        == "New Folder/Jane Doe - New Title.md"
+    )
 
 
 def test_prune_reports_and_removes_stale_items(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     item = ZoteroItem(
         item_key="ITEM_STALE",
@@ -302,8 +335,12 @@ def test_prune_reports_and_removes_stale_items(monkeypatch, tmp_path: Path) -> N
     assert state_data["processed_items"] == {}
 
 
-def test_status_report_counts_new_changed_errored_stale_and_ok(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+def test_status_report_counts_new_changed_errored_stale_and_ok(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     client = FakeZoteroClient(
         [
@@ -382,7 +419,9 @@ def test_status_report_counts_new_changed_errored_stale_and_ok(monkeypatch, tmp_
 
 
 def test_sync_reports_progress_updates(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
 
     items = [
         ZoteroItem(
@@ -408,15 +447,23 @@ def test_sync_reports_progress_updates(monkeypatch, tmp_path: Path) -> None:
     config = _make_config(tmp_path)
     events: list[tuple[int, int, str | None]] = []
 
-    run_sync(config, client=client, progress=lambda current, total, label: events.append((current, total, label)))
+    run_sync(
+        config,
+        client=client,
+        progress=lambda current, total, label: events.append((current, total, label)),
+    )
 
     assert events[0] == (0, 2, "starting")
     assert events[-1] == (2, 2, "done")
 
 
 def test_sync_truncates_long_windows_output_paths(monkeypatch, tmp_path: Path) -> None:
-    monkeypatch.setattr("zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None))
-    monkeypatch.setattr("zotero_to_md.markdown_writer._running_on_windows", lambda: True)
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
+    monkeypatch.setattr(
+        "zotero_to_md.markdown_writer._running_on_windows", lambda: True
+    )
 
     config = _make_config(tmp_path)
     monkeypatch.setattr(

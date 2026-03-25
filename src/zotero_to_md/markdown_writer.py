@@ -83,9 +83,13 @@ def resolve_output_path(
     return output
 
 
-def _build_output_path(directory: Path, base_name: str, *, suffix: int | None = None) -> Path:
+def _build_output_path(
+    directory: Path, base_name: str, *, suffix: int | None = None
+) -> Path:
     suffix_text = "" if suffix is None else f"-{suffix}"
-    file_stem = _fit_file_stem(directory, base_name, suffix_text=suffix_text, extension=".md")
+    file_stem = _fit_file_stem(
+        directory, base_name, suffix_text=suffix_text, extension=".md"
+    )
     output = directory / f"{file_stem}{suffix_text}.md"
     if _running_on_windows() and len(str(output)) > WINDOWS_MAX_PATH_LENGTH:
         raise ValueError(
@@ -94,10 +98,18 @@ def _build_output_path(directory: Path, base_name: str, *, suffix: int | None = 
     return output
 
 
-def _fit_file_stem(directory: Path, base_name: str, *, suffix_text: str, extension: str) -> str:
+def _fit_file_stem(
+    directory: Path, base_name: str, *, suffix_text: str, extension: str
+) -> str:
     max_stem_length = MAX_PATH_COMPONENT_LENGTH - len(suffix_text) - len(extension)
     if _running_on_windows():
-        available = WINDOWS_MAX_PATH_LENGTH - len(str(directory)) - 1 - len(suffix_text) - len(extension)
+        available = (
+            WINDOWS_MAX_PATH_LENGTH
+            - len(str(directory))
+            - 1
+            - len(suffix_text)
+            - len(extension)
+        )
         max_stem_length = min(max_stem_length, available)
     return _truncate_component(base_name, max(1, max_stem_length))
 
@@ -142,7 +154,9 @@ def render_markdown(
         "status": extraction.status,
         "fingerprint": item_fingerprint(item),
     }
-    frontmatter_yaml = yaml.safe_dump(frontmatter, sort_keys=False, allow_unicode=False).strip()
+    frontmatter_yaml = yaml.safe_dump(
+        frontmatter, sort_keys=False, allow_unicode=False
+    ).strip()
     body = extraction.text.strip()
     return f"---\n{frontmatter_yaml}\n---\n\n{body}\n"
 

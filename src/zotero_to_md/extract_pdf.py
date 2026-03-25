@@ -87,13 +87,17 @@ _COMMON_REPAIRED_WORDS = {
 def extract_pdf_text(pdf_path: Path) -> str:
     with fitz.open(pdf_path) as document:
         pages = [page.get_text("text") for page in document]
-    extracted = "\n\n".join(text.strip() for text in pages if text and text.strip()).strip()
+    extracted = "\n\n".join(
+        text.strip() for text in pages if text and text.strip()
+    ).strip()
     return _repair_shifted_pdf_text(extracted)
 
 
 def _repair_shifted_pdf_text(text: str) -> str:
     protected = _protect_shifted_ascii_controls(text)
-    repaired = _TOKEN_PATTERN.sub(lambda match: _repair_token(match.group(0)), protected)
+    repaired = _TOKEN_PATTERN.sub(
+        lambda match: _repair_token(match.group(0)), protected
+    )
     return _unprotect_shifted_ascii_controls(repaired)
 
 
@@ -140,8 +144,12 @@ def _repair_token(token: str) -> str:
             repaired_segments.append(
                 _repair_token_segment(
                     token[index:end],
-                    prev_char=_unprotect_shifted_ascii_controls(token[index - 1]) if index > 0 else None,
-                    next_char=_unprotect_shifted_ascii_controls(token[end]) if end < len(token) else None,
+                    prev_char=_unprotect_shifted_ascii_controls(token[index - 1])
+                    if index > 0
+                    else None,
+                    next_char=_unprotect_shifted_ascii_controls(token[end])
+                    if end < len(token)
+                    else None,
                 )
             )
             index = end
@@ -153,10 +161,15 @@ def _repair_token(token: str) -> str:
     return "".join(repaired_segments)
 
 
-def _repair_token_segment(segment: str, *, prev_char: str | None, next_char: str | None) -> str:
-    prefix, core, suffix = _trim_segment_edges(segment, prev_char=prev_char, next_char=next_char)
+def _repair_token_segment(
+    segment: str, *, prev_char: str | None, next_char: str | None
+) -> str:
+    prefix, core, suffix = _trim_segment_edges(
+        segment, prev_char=prev_char, next_char=next_char
+    )
     contains_protected_ascii = any(
-        _PROTECTED_ASCII_BASE <= ord(char) <= _PROTECTED_ASCII_BASE + 126 for char in core
+        _PROTECTED_ASCII_BASE <= ord(char) <= _PROTECTED_ASCII_BASE + 126
+        for char in core
     )
     if not core or (len(core) < 2 and not contains_protected_ascii):
         return segment
@@ -167,7 +180,9 @@ def _repair_token_segment(segment: str, *, prev_char: str | None, next_char: str
     return segment
 
 
-def _trim_segment_edges(segment: str, *, prev_char: str | None, next_char: str | None) -> tuple[str, str, str]:
+def _trim_segment_edges(
+    segment: str, *, prev_char: str | None, next_char: str | None
+) -> tuple[str, str, str]:
     prefix = ""
     suffix = ""
     core = segment
@@ -216,7 +231,10 @@ def _segment_score(segment: str) -> int:
 
     if any(char in plain_segment for char in "`_^\\{}|"):
         score -= 10
-    if any(ord(char) > 126 and not (0xFB00 <= ord(char) <= 0xFB06) for char in plain_segment):
+    if any(
+        ord(char) > 126 and not (0xFB00 <= ord(char) <= 0xFB06)
+        for char in plain_segment
+    ):
         score -= 4
 
     for word in words:

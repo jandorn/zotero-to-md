@@ -60,4 +60,6 @@ def test_state_store_migrates_v1_entries(tmp_path: Path) -> None:
     assert state["schema_version"] == 2
     assert state["processed_items"]["ITEM1"]["output_path"] == "Paper.md"
     assert state["processed_items"]["ITEM1"]["fingerprint"] is None
-    assert state["processed_items"]["ITEM1"]["last_seen_at"] == "2026-03-02T10:00:00+00:00"
+    assert (
+        state["processed_items"]["ITEM1"]["last_seen_at"] == "2026-03-02T10:00:00+00:00"
+    )

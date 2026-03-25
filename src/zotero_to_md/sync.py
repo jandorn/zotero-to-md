@@ -9,7 +9,11 @@ from typing import Callable, Literal
 from zotero_to_md.errors import SyncError
 from zotero_to_md.extract_pdf import extract_pdf_text
 from zotero_to_md.extract_web import extract_web_text
-from zotero_to_md.markdown_writer import item_fingerprint, render_markdown, resolve_output_path
+from zotero_to_md.markdown_writer import (
+    item_fingerprint,
+    render_markdown,
+    resolve_output_path,
+)
 from zotero_to_md.models import (
     AppConfig,
     ExtractionResult,
@@ -59,7 +63,9 @@ def run_sync(
 
     for idx, item in enumerate(context.items, start=1):
         fingerprint = item_fingerprint(item)
-        decision = _classify_item(context.state.get_processed_entry(item.item_key), fingerprint)
+        decision = _classify_item(
+            context.state.get_processed_entry(item.item_key), fingerprint
+        )
 
         if decision == "ok":
             existing_entry = context.state.get_processed_entry(item.item_key)
@@ -70,7 +76,8 @@ def run_sync(
                     context,
                     item=item,
                     fingerprint=fingerprint,
-                    processed_at=_as_optional_str(existing_entry.get("processed_at")) or seen_at,
+                    processed_at=_as_optional_str(existing_entry.get("processed_at"))
+                    or seen_at,
                     source_kind=_source_kind_from_state(existing_entry),
                     status="ok",
                     output_path=_output_path_from_state(context.config, existing_entry),
@@ -85,10 +92,15 @@ def run_sync(
             continue
 
         try:
-            output_path = _process_item(context, item=item, fingerprint=fingerprint, force_canonical_path=False)
+            output_path = _process_item(
+                context, item=item, fingerprint=fingerprint, force_canonical_path=False
+            )
             stats.processed += 1
             stats.written_files.append(output_path)
-            if context.state.get_processed_entry(item.item_key) and decision == "retry-error":
+            if (
+                context.state.get_processed_entry(item.item_key)
+                and decision == "retry-error"
+            ):
                 logger(f"retried {item.item_key} -> {output_path}")
             elif config.verbose:
                 logger(f"processed {item.item_key} -> {output_path}")
@@ -113,7 +125,9 @@ def run_sync(
             progress_update(idx, total_items, "error")
 
     if not config.dry_run:
-        context.state.save(root_collection_key=context.root_collection_key, last_run_at=_utc_now_iso())
+        context.state.save(
+            root_collection_key=context.root_collection_key, last_run_at=_utc_now_iso()
+        )
 
     if total_items == 0:
         progress_update(1, 1, "done")
@@ -123,7 +137,9 @@ def run_sync(
     return stats
 
 
-def get_status_report(config: AppConfig, *, client: ZoteroClient | None = None) -> StatusReport:
+def get_status_report(
+    config: AppConfig, *, client: ZoteroClient | None = None
+) -> StatusReport:
     context = _load_sync_context(config, client=client)
     return _build_status_report(context)
 
@@ -143,10 +159,14 @@ def run_resync(
 
     logger = log or (lambda _message: None)
     context = _load_sync_context(config, client=client)
-    selected_items = context.items if all_items else [context.item_by_key.get(item_key or "")]
+    selected_items = (
+        context.items if all_items else [context.item_by_key.get(item_key or "")]
+    )
 
     if not all_items and selected_items == [None]:
-        raise SyncError(f'Item "{item_key}" was not found under the selected root collection.')
+        raise SyncError(
+            f'Item "{item_key}" was not found under the selected root collection.'
+        )
 
     stats = SyncStats(discovered=len(context.items))
     for selected in selected_items:
@@ -172,7 +192,9 @@ def run_resync(
                 item=selected,
                 fingerprint=fingerprint,
                 processed_at=_utc_now_iso(),
-                source_kind=_source_kind_from_state(context.state.get_processed_entry(selected.item_key)),
+                source_kind=_source_kind_from_state(
+                    context.state.get_processed_entry(selected.item_key)
+                ),
                 status="error",
                 output_path=_output_path_from_state(
                     context.config,
@@ -182,7 +204,9 @@ def run_resync(
             stats.errors += 1
             logger(f"error resyncing {selected.item_key}: {exc}")
 
-    context.state.save(root_collection_key=context.root_collection_key, last_run_at=_utc_now_iso())
+    context.state.save(
+        root_collection_key=context.root_collection_key, last_run_at=_utc_now_iso()
+    )
     return stats
 
 
@@ -194,7 +218,9 @@ def run_prune(
 ) -> PruneStats:
     context = _load_sync_context(config, client=client)
     current_keys = set(context.item_by_key)
-    stale_keys = sorted(key for key in context.state.iter_processed_items() if key not in current_keys)
+    stale_keys = sorted(
+        key for key in context.state.iter_processed_items() if key not in current_keys
+    )
     stats = PruneStats(stale_item_keys=stale_keys)
 
     if not apply:
@@ -208,15 +234,21 @@ def run_prune(
                 output_path.unlink()
                 stats.deleted_files += 1
             except OSError as exc:
-                raise SyncError(f"Failed to delete stale file {output_path}: {exc}") from exc
+                raise SyncError(
+                    f"Failed to delete stale file {output_path}: {exc}"
+                ) from exc
         context.state.remove_processed(stale_key)
         stats.removed_state_entries += 1
 
-    context.state.save(root_collection_key=context.root_collection_key, last_run_at=_utc_now_iso())
+    context.state.save(
+        root_collection_key=context.root_collection_key, last_run_at=_utc_now_iso()
+    )
     return stats
 
 
-def _load_sync_context(config: AppConfig, *, client: ZoteroClient | None = None) -> _SyncContext:
+def _load_sync_context(
+    config: AppConfig, *, client: ZoteroClient | None = None
+) -> _SyncContext:
     zotero_client = client or ZoteroClient(
         user_id=config.zotero_user_id,
         api_key=config.zotero_api_key,
@@ -253,7 +285,9 @@ def _load_sync_context(config: AppConfig, *, client: ZoteroClient | None = None)
 def _build_status_report(context: _SyncContext) -> StatusReport:
     report = StatusReport(
         root_collection=context.config.root_collection,
-        state_schema_version=int(context.state_data.get("schema_version", SCHEMA_VERSION)),
+        state_schema_version=int(
+            context.state_data.get("schema_version", SCHEMA_VERSION)
+        ),
         last_run_at=_as_optional_str(context.state_data.get("last_run_at")),
     )
     current_keys = set(context.item_by_key)
@@ -275,7 +309,9 @@ def _build_status_report(context: _SyncContext) -> StatusReport:
     return report
 
 
-def _classify_item(state_entry: dict[str, object] | None, fingerprint: str) -> SyncDecision:
+def _classify_item(
+    state_entry: dict[str, object] | None, fingerprint: str
+) -> SyncDecision:
     if state_entry is None:
         return "new"
     if state_entry.get("status") == "error":
@@ -303,7 +339,12 @@ def _process_item(
         force_canonical_path=force_canonical_path,
     )
     old_output = current_output if force_canonical_path else None
-    if force_canonical_path and old_output is not None and old_output != output_path and old_output.exists():
+    if (
+        force_canonical_path
+        and old_output is not None
+        and old_output != output_path
+        and old_output.exists()
+    ):
         output_path.parent.mkdir(parents=True, exist_ok=True)
         old_output.replace(output_path)
     else:
@@ -376,10 +417,14 @@ def _save_state_entry(
             last_seen_at=last_seen_at or processed_at,
         ),
     )
-    context.state.save(root_collection_key=context.root_collection_key, last_run_at=processed_at)
+    context.state.save(
+        root_collection_key=context.root_collection_key, last_run_at=processed_at
+    )
 
 
-def _output_path_from_state(config: AppConfig, state_entry: dict[str, object] | None) -> Path | None:
+def _output_path_from_state(
+    config: AppConfig, state_entry: dict[str, object] | None
+) -> Path | None:
     if state_entry is None:
         return None
     raw_output_path = state_entry.get("output_path")
@@ -396,14 +441,18 @@ def _output_path_from_state(config: AppConfig, state_entry: dict[str, object] | 
     return output_path
 
 
-def _source_kind_from_state(state_entry: dict[str, object] | None) -> Literal["pdf", "web", "none"]:
+def _source_kind_from_state(
+    state_entry: dict[str, object] | None,
+) -> Literal["pdf", "web", "none"]:
     source_kind = state_entry.get("source_kind") if state_entry else None
     if source_kind in {"pdf", "web", "none"}:
         return source_kind
     return "none"
 
 
-def _extract_item_content(*, item: ZoteroItem, client: ZoteroClient) -> ExtractionResult:
+def _extract_item_content(
+    *, item: ZoteroItem, client: ZoteroClient
+) -> ExtractionResult:
     if item.pdf_attachment_key:
         try:
             with TemporaryDirectory(prefix="zotero-to-md-") as temp_dir:
@@ -413,7 +462,9 @@ def _extract_item_content(*, item: ZoteroItem, client: ZoteroClient) -> Extracti
                 )
                 extracted = extract_pdf_text(downloaded_pdf)
                 if extracted.strip():
-                    return ExtractionResult(source_kind="pdf", status="ok", text=extracted.strip())
+                    return ExtractionResult(
+                        source_kind="pdf", status="ok", text=extracted.strip()
+                    )
                 pdf_error = "PDF extracted but had no readable text."
         except Exception as exc:
             pdf_error = f"PDF extraction failed: {exc}"
@@ -421,8 +472,12 @@ def _extract_item_content(*, item: ZoteroItem, client: ZoteroClient) -> Extracti
         if item.url:
             web_text, web_error = _safe_extract_web_text(item.url)
             if web_text:
-                return ExtractionResult(source_kind="web", status="ok", text=web_text.strip())
-            error_text = _error_body(web_error or "Web extraction failed.", url=item.url)
+                return ExtractionResult(
+                    source_kind="web", status="ok", text=web_text.strip()
+                )
+            error_text = _error_body(
+                web_error or "Web extraction failed.", url=item.url
+            )
             return ExtractionResult(
                 source_kind="web",
                 status="error",
@@ -440,7 +495,9 @@ def _extract_item_content(*, item: ZoteroItem, client: ZoteroClient) -> Extracti
     if item.url:
         web_text, web_error = _safe_extract_web_text(item.url)
         if web_text:
-            return ExtractionResult(source_kind="web", status="ok", text=web_text.strip())
+            return ExtractionResult(
+                source_kind="web", status="ok", text=web_text.strip()
+            )
         return ExtractionResult(
             source_kind="web",
             status="error",
