@@ -255,6 +255,55 @@ def test_sync_rewrites_changed_items_in_existing_path(
     assert "collection_path: New Folder" in content
 
 
+def test_sync_reprocesses_items_when_only_metadata_changes(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(
+        "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
+    )
+
+    item = ZoteroItem(
+        item_key="ITEM_META",
+        title="Metadata Paper",
+        authors=["Jane Doe"],
+        year="2026",
+        url="https://example.com/metadata",
+        collection_path="",
+        pdf_attachment_key=None,
+        tags=["alpha"],
+        abstract="Original abstract",
+        doi="10.1000/original",
+    )
+    client = FakeZoteroClient([item])
+    config = _make_config(tmp_path)
+
+    first_stats = run_sync(config, client=client)
+    output_path = next(config.output_root.rglob("*.md"))
+
+    client.items[0] = ZoteroItem(
+        item_key="ITEM_META",
+        title="Metadata Paper",
+        authors=["Jane Doe"],
+        year="2026",
+        url="https://example.com/metadata",
+        collection_path="",
+        pdf_attachment_key=None,
+        tags=["alpha", "beta"],
+        abstract="Updated abstract",
+        doi="10.1000/updated",
+    )
+
+    second_stats = run_sync(config, client=client)
+
+    assert first_stats.processed == 1
+    assert second_stats.processed == 1
+    assert second_stats.skipped_existing == 0
+    content = output_path.read_text(encoding="utf-8")
+    assert "abstract: Updated abstract" in content
+    assert "doi: 10.1000/updated" in content
+    assert "- beta" in content
+
+
 def test_resync_moves_item_to_canonical_path(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(
         "zotero_to_md.sync.extract_web_text", lambda _url: ("web text", None)
