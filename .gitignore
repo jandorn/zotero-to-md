@@ -5,8 +5,15 @@ build/
 dist/
 wheels/
 *.egg-info
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 
 # Virtual environments
 .venv
 
 .env
+
+# OS-generated files
+.DS_Store
